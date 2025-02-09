@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Source Code Getter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/prism.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/themes/prism.min.css" id="prism-theme">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -154,9 +153,99 @@
             padding: 2px;
             border-radius: 2px;
         }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        .dark-mode {
+            background-color: #1e1e1e !important;
+            color: #d4d4d4 !important;
+        }
+        .dark-mode .container {
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .dark-mode input[type="url"],
+        .dark-mode .search-box input {
+            background-color: #3d3d3d;
+            color: #d4d4d4;
+            border-color: #505050;
+        }
+        .dark-mode .tab-content {
+            background-color: #2d2d2d;
+            border-color: #505050;
+        }
+        .dark-mode .tab-button {
+            background-color: #3d3d3d;
+            color: #d4d4d4;
+        }
+        .dark-mode .tab-button:hover {
+            background-color: #007bff;
+        }
+        .dark-mode .file-link {
+            border-color: #505050;
+        }
+        .dark-mode .file-link:hover {
+            background-color: #3d3d3d;
+        }
+        .dark-mode mark {
+            background: #4d4d00;
+            color: #ffff80;
+        }
+        .file-size {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .dark-mode .file-size {
+            color: #999;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #eee;
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .dark-mode .progress-bar {
+            background-color: #3d3d3d;
+        }
+        .checkbox-list {
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .checkbox-list label {
+            display: block;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .checkbox-list label:hover {
+            background-color: #f0f0f0;
+        }
+        .dark-mode .checkbox-list label:hover {
+            background-color: #3d3d3d;
+        }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
     <div class="container">
         <h1>Website Source Code Getter</h1>
         <div class="input-group">
@@ -334,7 +423,7 @@
                 // Create folder structure with proper HTML content
                 const files = {
                     'index.html': new Blob([htmlContent], { type: 'text/html' }),
-                    'readme.txt': new Blob(['This codebase was downloaded using Website Source Code Getter (https://github.com/WebsiteGetter)\n\nStructure:\n- index.html: Main HTML file\n- css/: CSS files\n- js/: JavaScript files'], { type: 'text/plain' })
+                    'readme.txt': new Blob(['This codebase was downloaded using Website Source Code Getter (https://github.com/YessyAliyah/WebsiteGetter/tree/main)\n\nStructure:\n- index.html: Main HTML file\n- css/: CSS files\n- js/: JavaScript files'], { type: 'text/plain' })
                 };
 
                 // Fetch CSS files
@@ -450,6 +539,149 @@
                 tab.innerHTML = tab.getAttribute('data-original');
             }
         }
+
+        function searchCode(query) {
+            const content = document.querySelector('.tab-content.active pre');
+            const matchCount = document.querySelector('.tab-content.active .match-count');
+            
+            if (!query) {
+                // Reset highlights
+                content.innerHTML = content.innerHTML.replace(/<mark>|<\/mark>/g, '');
+                matchCount.textContent = '';
+                return;
+            }
+
+            const regex = new RegExp(query, 'gi');
+            let text = content.textContent;
+            let matches = text.match(regex);
+            let count = matches ? matches.length : 0;
+            
+            // Highlight matches
+            content.innerHTML = text.replace(regex, match => `<mark>${match}</mark>`);
+            matchCount.textContent = `${count} match${count !== 1 ? 'es' : ''}`;
+        }
+
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const button = document.querySelector('.theme-toggle');
+            const isDark = body.classList.toggle('dark-mode');
+            
+            // Toggle theme button text
+            button.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            
+            // Toggle Prism.js theme
+            const themeLink = document.getElementById('prism-theme');
+            themeLink.href = isDark 
+                ? 'https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/themes/prism-tomorrow.min.css'
+                : 'https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/themes/prism.min.css';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Initialize Prism.js and other features
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Prism.js
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAll();
+            }
+
+            // Add line numbers to any existing code blocks
+            document.querySelectorAll('pre').forEach(pre => {
+                pre.classList.add('line-numbers');
+            });
+        });
+
+        // Override the original getSourceCode function to add new features
+        const originalGetSourceCode = getSourceCode;
+        getSourceCode = async function() {
+            const loading = document.getElementById('loading');
+            loading.innerHTML = 'Loading... <div class="progress-bar"><div class="fill"></div></div>';
+            loading.style.display = 'inline';
+            const progressBar = loading.querySelector('.progress-bar');
+            progressBar.style.display = 'block';
+            const progressFill = progressBar.querySelector('.fill');
+            
+            try {
+                // Show initial progress
+                progressFill.style.width = '10%';
+                
+                // Get the source code
+                await originalGetSourceCode();
+                
+                // Format and highlight the code
+                const htmlTab = document.querySelector('#html-tab pre code');
+                if (htmlTab) {
+                    try {
+                        const formattedHtml = html_beautify(htmlTab.textContent, {
+                            indent_size: 2,
+                            wrap_line_length: 80
+                        });
+                        htmlTab.textContent = formattedHtml;
+                        htmlTab.parentElement.classList.add('line-numbers');
+                        
+                        // Re-initialize Prism.js
+                        if (typeof Prism !== 'undefined') {
+                            Prism.highlightElement(htmlTab);
+                        }
+                    } catch (error) {
+                        console.error('Error formatting code:', error);
+                    }
+                }
+                
+                // Extract and display images
+                const doc = new DOMParser().parseFromString(htmlTab.textContent, 'text/html');
+                const images = Array.from(doc.querySelectorAll('img')).map(img => ({
+                    src: img.src,
+                    alt: img.alt || 'Image'
+                }));
+                
+                if (images.length > 0) {
+                    const imagesTab = `
+                        <div class="code-tabs">
+                            <button class="tab-button" onclick="showTab('images')">Images (${images.length})</button>
+                        </div>
+                        <div id="images-tab" class="tab-content">
+                            ${images.map(img => `
+                                <div class="file-link">
+                                    <input type="checkbox" checked>
+                                    📷 ${img.alt} (${img.src})
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    document.querySelector('.code-tabs').insertAdjacentHTML('beforeend', imagesTab);
+                }
+                
+                // Show final progress
+                progressFill.style.width = '100%';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 500);
+                
+            } catch (error) {
+                progressBar.style.display = 'none';
+                throw error;
+            }
+        };
     </script>
 </body>
 </html>
