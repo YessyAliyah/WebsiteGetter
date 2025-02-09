@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Source Code Getter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/prism.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prismjs/1.29.0/themes/prism.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="url"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #sourceCode {
+            width: 100%;
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow: auto;
+            background-color: #f8f9fa;
+            min-height: 0;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .code-tabs {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background-color: #e9ecef;
+            color: #495057;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s ease;
+        }
+        .tab-button:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-top: none;
+            background-color: #f8f9fa;
+            height: 600px;
+            overflow: auto;
+            min-height: 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .file-link {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .file-link:hover {
+            background-color: #f0f0f0;
+        }
+        .button-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .success-message {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        .loading {
+            display: none;
+            margin-left: 10px;
+            color: #666;
+        }
+        .search-box {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-box .match-count {
+            color: #666;
+            font-size: 14px;
+        }
+        mark {
+            background: #fff3cd;
+            color: #856404;
+            padding: 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Website Source Code Getter</h1>
+        <div class="input-group">
+            <input type="url" id="urlInput" value="https://roblox.com" placeholder="Enter website URL (e.g., https://example.com)" required>
+            <button onclick="getSourceCode()">Get Source Code</button>
+            <span class="loading" id="loading">Loading...</span>
+        </div>
+        <pre id="sourceCode"></pre>
+        <div class="button-group" id="actionButtons" style="display: none;">
+            <button onclick="copyToClipboard()">Copy to Clipboard</button>
+            <button onclick="saveAsHTML()">Save as HTML</button>
+            <button onclick="downloadCodebase()" style="background-color: #28a745;">Download Codebase</button>
+        </div>
+        <div class="success-message" id="successMessage"></div>
+    </div>
+
+    <script>
+        async function getSourceCode() {
+            const urlInput = document.getElementById('urlInput');
+            const sourceCodeElement = document.getElementById('sourceCode');
+            const actionButtons = document.getElementById('actionButtons');
+            const loading = document.getElementById('loading');
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                sourceCodeElement.textContent = 'Please enter a URL';
+                actionButtons.style.display = 'none';
+                return;
+            }
+
+            try {
+                loading.style.display = 'inline';
+                sourceCodeElement.textContent = '';
+                actionButtons.style.display = 'none';
+                
+                // Add https:// if protocol is missing and validate URL
+                const urlWithProtocol = url.startsWith('http') ? url : `https://${url}`;
+                try {
+                    new URL(urlWithProtocol);
+                } catch (e) {
+                    throw new Error('Invalid URL format. Please enter a valid URL (e.g., example.com or https://example.com)');
+                }
+                
+                // Using allorigins.win as a CORS proxy
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(urlWithProtocol)}`;
+                
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch the website');
+                }
+                
+                const html = await response.text();
+                
+                // Extract CSS and JavaScript links
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Get all CSS links with full URLs
+                const cssLinks = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
+                    .map(link => {
+                        try {
+                            return new URL(link.getAttribute('href'), urlWithProtocol).href;
+                        } catch (e) {
+                            return null;
+                        }
+                    })
+                    .filter(href => href);
+                
+                // Get all JavaScript links with full URLs
+                const jsLinks = Array.from(doc.querySelectorAll('script[src]'))
+                    .map(script => {
+                        try {
+                            return new URL(script.getAttribute('src'), urlWithProtocol).href;
+                        } catch (e) {
+                            return null;
+                        }
+                    })
+                    .filter(src => src);
+                
+                // Create tabs for different types of code
+                const codeDisplay = `
+                    <div class="code-tabs">
+                        <button class="tab-button active" onclick="showTab('html')">HTML</button>
+                        <button class="tab-button" onclick="showTab('css')">CSS (${cssLinks.length} files)</button>
+                        <button class="tab-button" onclick="showTab('js')">JavaScript (${jsLinks.length} files)</button>
+                    </div>
+                    <div id="html-tab" class="tab-content active">
+                        <div class="search-box">
+                            <input type="text" placeholder="Search in code..." onkeyup="searchCode(this.value)">
+                            <span class="match-count"></span>
+                        </div>
+                        <pre><code class="language-html">${html.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+                    </div>
+                    <div id="css-tab" class="tab-content">
+                        ${cssLinks.length ? cssLinks.map(link => `<div class="file-link" onclick="fetchResource('${link}')">📄 ${link}</div>`).join('') : 'No CSS files found'}
+                    </div>
+                    <div id="js-tab" class="tab-content">
+                        ${jsLinks.length ? jsLinks.map(link => `<div class="file-link" onclick="fetchResource('${link}')">📄 ${link}</div>`).join('') : 'No JavaScript files found'}
+                    </div>
+                `;
+                
+                sourceCodeElement.innerHTML = codeDisplay;
+                actionButtons.style.display = 'flex';
+            } catch (error) {
+                let errorMessage = 'Failed to fetch the website. ';
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'The website might be blocking access or not allowing cross-origin requests.';
+                } else {
+                    errorMessage += 'Please make sure the URL is correct and the website is accessible.';
+                }
+                sourceCodeElement.textContent = errorMessage;
+                actionButtons.style.display = 'none';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function copyToClipboard() {
+            const sourceCode = document.getElementById('sourceCode').textContent;
+            const successMessage = document.getElementById('successMessage');
+            
+            try {
+                await navigator.clipboard.writeText(sourceCode);
+                successMessage.textContent = 'Source code copied to clipboard!';
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                alert('Failed to copy to clipboard: ' + error.message);
+            }
+        }
+
+        function saveAsHTML() {
+            const sourceCode = document.getElementById('sourceCode').textContent;
+            const urlInput = document.getElementById('urlInput');
+            const url = new URL(urlInput.value.trim());
+            const filename = url.hostname + '.html';
+            
+            const blob = new Blob([sourceCode], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = `Saved as ${filename}`;
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        async function downloadCodebase() {
+            const urlInput = document.getElementById('urlInput');
+            const url = new URL(urlInput.value.trim());
+            const hostname = url.hostname;
+            const successMessage = document.getElementById('successMessage');
+            
+            try {
+                // Get all resources
+                const htmlContent = document.querySelector('#html-tab').textContent;
+                const cssLinks = Array.from(document.querySelectorAll('#css-tab .file-link')).map(link => ({
+                    url: link.getAttribute('onclick').match(/'([^']+)'/)[1],
+                    filename: link.getAttribute('onclick').match(/'([^']+)'/)[1].split('/').pop()
+                }));
+                const jsLinks = Array.from(document.querySelectorAll('#js-tab .file-link')).map(link => ({
+                    url: link.getAttribute('onclick').match(/'([^']+)'/)[1],
+                    filename: link.getAttribute('onclick').match(/'([^']+)'/)[1].split('/').pop()
+                }));
+
+                // Create folder structure with proper HTML content
+                const files = {
+                    'index.html': new Blob([htmlContent], { type: 'text/html' }),
+                    'readme.txt': new Blob(['This codebase was downloaded using Website Source Code Getter (https://github.com/WebsiteGetter)\n\nStructure:\n- index.html: Main HTML file\n- css/: CSS files\n- js/: JavaScript files'], { type: 'text/plain' })
+                };
+
+                // Fetch CSS files
+                for (const cssFile of cssLinks) {
+                    try {
+                        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cssFile.url)}`;
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const content = await response.text();
+                            files[`css/${cssFile.filename}`] = new Blob([content], { type: 'text/css' });
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch CSS file: ${cssFile.url}`);
+                    }
+                }
+
+                // Fetch JavaScript files
+                for (const jsFile of jsLinks) {
+                    try {
+                        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(jsFile.url)}`;
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const content = await response.text();
+                            files[`js/${jsFile.filename}`] = new Blob([content], { type: 'text/javascript' });
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch JavaScript file: ${jsFile.url}`);
+                    }
+                }
+
+                // Create zip file
+                const zip = new JSZip();
+                const rootFolder = zip.folder(hostname);
+                
+                // Add files to zip
+                for (const [path, content] of Object.entries(files)) {
+                    const pathParts = path.split('/');
+                    if (pathParts.length > 1) {
+                        // Create subfolders for css and js files
+                        rootFolder.folder(pathParts[0]); // Create css or js folder
+                    }
+                    rootFolder.file(path, content);
+                }
+
+                // Generate and download zip
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(zipBlob);
+                a.download = `${hostname}-codebase.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+
+                successMessage.textContent = `Downloaded codebase as ${hostname}-codebase.zip`;
+                successMessage.style.display = 'block';
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                alert('Failed to download codebase: ' + error.message);
+            }
+        }
+        async function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        async function fetchResource(url) {
+            try {
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch resource');
+                }
+                const content = await response.text();
+                
+                // Get the active tab and create a back button
+                const activeTab = document.querySelector('.tab-content.active');
+                const isCSS = url.toLowerCase().endsWith('.css');
+                const fileType = isCSS ? 'CSS' : 'JavaScript';
+                
+                // Store the original content
+                if (!activeTab.getAttribute('data-original')) {
+                    activeTab.setAttribute('data-original', activeTab.innerHTML);
+                }
+                
+                // Show the resource content with a back button
+                activeTab.innerHTML = `
+                    <div style="margin-bottom: 20px; padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid #ddd;">
+                        <button onclick="restoreTab('${isCSS ? 'css' : 'js'}')" class="back-button" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">← Back to ${fileType} Files</button>
+                        <span style="margin-left: 15px; color: #666;">Viewing: ${url}</span>
+                    </div>
+                    <pre style="margin-top: 10px; padding: 15px; border: 1px solid #eee; border-radius: 4px;">${content}</pre>
+                `;
+            } catch (error) {
+                alert('Failed to fetch resource: ' + error.message);
+            }
+        }
+
+        function restoreTab(tabType) {
+            const tab = document.getElementById(`${tabType}-tab`);
+            if (tab && tab.getAttribute('data-original')) {
+                tab.innerHTML = tab.getAttribute('data-original');
+            }
+        }
+    </script>
+</body>
+</html>
